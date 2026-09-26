@@ -5,8 +5,8 @@
 # only runs fzf, so it opens instantly.
 set -uo pipefail
 
-# mode: auto (default) = transcript for claude panes, pane read otherwise;
-# visible = always read the pane viewport; transcript = claude transcript only
+# mode: auto (default) = transcript for agent panes, pane read otherwise;
+# visible = always read the pane viewport; transcript = agent transcript only
 mode="${1:-auto}"
 
 herdr_bin="${HERDR_BIN_PATH:-herdr}"
@@ -31,30 +31,26 @@ fi
 # scroll the origin pane while the server reads it
 scan_source="visible"
 scan_lines=400
-transcript_lines=1000
+transcript_messages=200
 conf="$HOME/.config/herdr/plugins/config/openr/openr.conf"
 # shellcheck disable=SC1090
 [ -r "$conf" ] && . "$conf"
 
-# Claude panes: read the session transcript instead of scraping the screen —
-# full history, exact tool-call paths, and zero pane reads (nothing scrolls).
-# The transcript text feeds the same extraction pipeline as pane content.
+# Agent panes: read the session transcript instead of scraping the screen —
+# full history, raw markdown (link URLs that the agent's TUI hides), and
+# tool-call paths. asf (github.com/wassname/asf) reads the transcript of any
+# agent herdr knows the session of: pi, claude, codex, opencode, ...
 transcript=""
 if [ "$mode" != "visible" ]; then
-pane_json="$("$herdr_bin" pane get "$pane_id" 2>/dev/null)"
-if [ "$(printf '%s' "$pane_json" | jq -r '.result.pane.agent // empty')" = "claude" ]; then
-  sid="$(printf '%s' "$pane_json" | jq -r '.result.pane.agent_session.value // empty')"
-  pane_cwd="$(printf '%s' "$pane_json" | jq -r '.result.pane.cwd // empty')"
-  if [ -n "$sid" ] && [ -n "$pane_cwd" ]; then
-    slug="$(printf '%s' "$pane_cwd" | sed 's/[\/.]/-/g')"
-    t="$HOME/.claude/projects/$slug/$sid.jsonl"
-    [ -r "$t" ] && transcript="$t"
+  transcript="$("$herdr_bin" pane get "$pane_id" 2>/dev/null | jq -r '.result.pane.agent_session.value // empty')"
+  if [ -n "$transcript" ] && ! command -v asf >/dev/null 2>&1; then
+    [ "$mode" = "transcript" ] && fail "asf is not installed: cargo install --git https://github.com/wassname/asf"
+    transcript=""
   fi
-fi
 fi
 
 if [ "$mode" = "transcript" ] && [ -z "$transcript" ]; then
-  fail "no Claude transcript for this pane"
+  fail "no agent session for this pane"
 fi
 [ "$mode" = "visible" ] && scan_source="visible"
 
@@ -64,12 +60,8 @@ printf '%s src=%s pane=%s cwd=%s\n' "$(date '+%H:%M:%S')" \
 
 scan_text() {
   if [ -n "$transcript" ]; then
-    # tool_use file paths as their own lines + message text (URLs, mentions)
-    tail -n "$transcript_lines" "$transcript" | jq -Rr 'fromjson?
-      | .message.content[]?
-      | if .type == "tool_use" then (.input.file_path // .input.notebook_path // empty)
-        elif .type == "text" then .text
-        else empty end' 2>/dev/null
+    # assistant text + one line per tool call; tool results are left out (noise)
+    asf -r "$transcript" --role assistant --tools --tail "$transcript_messages" 2>/dev/null
   else
     "$herdr_bin" pane read "$pane_id" --source "$scan_source" --lines "$scan_lines" 2>/dev/null
   fi
@@ -112,6 +104,7 @@ while IFS=$'\t' read -r kind tok; do
     /*) abs="$p" ;;
     *) abs="$cwd/$p" ;;
   esac
+  abs="${abs%/}"  # dedupe dir/ and dir
   if [ -d "$abs" ]; then
     printf 'file\t%s/\t%s\n' "${tok%/}" "$abs"
   elif [ -e "$abs" ]; then

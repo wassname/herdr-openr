@@ -7,37 +7,55 @@ your file manager, or copy the path.
 
 ![openr demo](assets/demo.gif)
 
-Two modes, two keys: `prefix+o` scans the **visible viewport** of any pane;
-`prefix+shift+o` reads the **Claude session transcript**
-(`~/.claude/projects/<project>/<session>.jsonl`, resolved via the herdr
-API) — exact paths from every Edit/Write/Read tool call, whole session
-history, zero pane reads. Paths that don't exist are dropped.
+> Fork of [wraithyy/herdr-openr](https://github.com/wraithyy/herdr-openr).
+> Changes: reads any agent's transcript through [asf](https://github.com/wassname/asf)
+> (pi, claude, codex, opencode, ...) instead of Claude only; `ctrl-f` reveals the
+> file in yazi; no startup hook that edits your `config.toml`.
 
-There's also `openr.pick` (auto: Claude pane → transcript, otherwise
-viewport) if you prefer one key for both — bind it yourself (example in
-`herdr-plugin.toml`).
+`openr.pick` reads the pane's **agent session transcript** when herdr knows the
+session, and the **visible viewport** otherwise. `openr.pick-visible` always
+reads the viewport, `openr.pick-transcript` only the transcript.
+
+The transcript holds what the agent's TUI hides: pi and other TUIs print a
+markdown link `[plot](file:///abs/plot.png)` as a clickable label only, so a
+screen scrape sees `plot`. The transcript has the path. It also has every file
+path from the agent's tool calls. Paths that don't exist are dropped.
 
 ## Quick start
 
 ```bash
-herdr plugin install wraithyy/herdr-openr
-herdr plugin action invoke openr.install-keybind   # binds the keys now
+herdr plugin install wassname/herdr-openr
+cargo install --git https://github.com/wassname/asf   # for transcript mode
 ```
 
-The second command is optional — a startup hook binds `prefix+o` (visible)
-and `prefix+shift+o` (transcript) by itself on the next herdr server start.
-(prefix = herdr's leader key, ctrl+b by default. Different keys? Add your
-own `[[keys.command]]` entries to `~/.config/herdr/config.toml` — the hook
-never touches existing bindings.)
+Bind keys in `~/.config/herdr/config.toml`. With `herdr --remote`, keys come
+from the client's config, not the server's.
 
-Needs `zsh`, `fzf`, `jq` (`bat` optional, nicer preview). macOS + Linux.
+```toml
+[[keys.command]]
+key = "prefix+f"
+type = "plugin_action"
+command = "openr.pick"
+description = "open file/URL: agent transcript, else visible pane"
+
+[[keys.command]]
+key = "prefix+shift+f"
+type = "plugin_action"
+command = "openr.pick-visible"
+description = "open file/URL from visible pane"
+```
+
+Then `herdr server reload-config`.
+
+Needs `zsh`, `fzf`, `jq`; `asf` for transcripts; `yazi` for `ctrl-f`
+(`bat` optional, nicer preview). macOS + Linux.
 
 ## Keys
 
 | key | action |
 |---|---|
 | `enter` | URL → browser · file → editor at line |
-| `ctrl-f` | reveal in Finder / open containing dir (Linux) |
+| `ctrl-f` | file → `reveal_cmd` (yazi, cursor on the file) · URL → browser |
 | `ctrl-y` | copy path/URL |
 | `esc` | cancel |
 
@@ -47,12 +65,13 @@ Optional — `~/.config/herdr/plugins/config/openr/openr.conf`:
 
 ```sh
 file_cmd='nvim +{line} {file}'   # bare {file}/{url}: values are pre-escaped
-file_open_in="tab"               # "tab" herdr tab | "detached" GUI editors
+reveal_cmd='yazi {file}'         # ctrl-f; runs like file_cmd
+file_open_in="tab"               # "tab" herdr tab | "detached" GUI editors (file_cmd and reveal_cmd)
 url_cmd=""                       # empty = open / xdg-open
 preview="1"
 scan_source="visible"            # non-agent panes; recent* scrolls the pane
 scan_lines=400
-transcript_lines=1000            # agent panes
+transcript_messages=200          # agent panes: last N assistant messages
 
 # VS Code:  file_open_in="detached"; file_cmd='code --goto {file}:{line}'
 # Zed:      file_open_in="detached"; file_cmd='zed {file}:{line}'

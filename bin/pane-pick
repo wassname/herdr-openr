@@ -1,8 +1,9 @@
 #!/usr/bin/env zsh
 # Pane `openr.picker`: fzf over the pre-extracted candidate list (built by
 # open.sh, passed via OPENR_LIST). Enter opens: URLs via url_cmd (detached),
-# files via file_cmd inside a new tab in the current workspace. Both commands
-# come from openr.conf; {file} {line} {url} are placeholders.
+# files via file_cmd inside a new tab in the current workspace; ctrl-f runs
+# reveal_cmd the same way. All come from openr.conf; {file} {line} {url} are
+# placeholders.
 set -u
 
 herdr_bin="${HERDR_BIN_PATH:-herdr}"
@@ -10,6 +11,7 @@ cwd="${OPENR_CWD:-$HOME}"
 list="${OPENR_LIST:?OPENR_LIST not set}"
 
 file_cmd='nvim +{line} {file}'
+reveal_cmd='yazi {file}'   # yazi starts with the cursor on the file; previews images
 url_cmd=""            # default resolved per-platform below unless set in conf
 file_open_in="tab"
 preview="1"
@@ -77,19 +79,8 @@ case $key in
     print -rn -- "$target" | clip
     exit 0 ;;
   ctrl-f)
-    # reveal in the file manager: Finder supports open -R, elsewhere open the dir
-    op="$(opener)"
-    [[ -n $op ]] || die "openr: no opener found (install xdg-utils)"
-    if [[ $kind == file ]]; then
-      if [[ $OSTYPE == darwin* ]]; then
-        open -R "$target"
-      else
-        "$op" "$(dirname "$target")"
-      fi
-    else
-      "$op" "$target"
-    fi
-    exit 0 ;;
+    # file: reveal_cmd below; URL: same as enter
+    [[ $kind == file ]] && file_cmd="$reveal_cmd" ;;
 esac
 
 # {file}/{url} substitutions are shell-quoted ((q)) — candidates come from
