@@ -40,11 +40,12 @@ conf="$HOME/.config/herdr/plugins/config/openr/openr.conf"
 # full history, raw markdown (link URLs that the agent's TUI hides), and
 # tool-call paths. asf (github.com/wassname/asf) reads the transcript of any
 # agent herdr knows the session of: pi, claude, codex, opencode, ...
+export PATH="$HOME/.cargo/bin:$PATH"  # cargo install's default; the server PATH may lack it
 transcript=""
 if [ "$mode" != "visible" ]; then
   transcript="$("$herdr_bin" pane get "$pane_id" 2>/dev/null | jq -r '.result.pane.agent_session.value // empty')"
-  if [ -n "$transcript" ] && ! command -v asf >/dev/null 2>&1; then
-    [ "$mode" = "transcript" ] && fail "asf is not installed: cargo install --git https://github.com/wassname/asf"
+  if [ -n "$transcript" ] && ! asf --help >/dev/null 2>&1; then
+    [ "$mode" = "transcript" ] && fail "asf not runnable: cargo install --git https://github.com/wassname/asf"
     transcript=""
   fi
 fi
