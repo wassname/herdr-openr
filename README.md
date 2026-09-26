@@ -10,7 +10,9 @@ your file manager, or copy the path.
 > Fork of [wraithyy/herdr-openr](https://github.com/wraithyy/herdr-openr).
 > Changes: reads any agent's transcript through [asf](https://github.com/wassname/asf)
 > (pi, claude, codex, opencode, ...) instead of Claude only; `ctrl-f` reveals the
-> file in yazi; no startup hook that edits your `config.toml`.
+> file in yazi, and Enter on an image does too; image previews with chafa;
+> files only (no dirs, no /usr paths); long paths show their end;
+> no startup hook that edits your `config.toml`.
 
 `openr.pick` reads the pane's **agent session transcript** when herdr knows the
 session, and the **visible viewport** otherwise. `openr.pick-visible` always
@@ -47,8 +49,8 @@ description = "open file/URL from visible pane"
 
 Then `herdr server reload-config`.
 
-Needs `zsh`, `fzf`, `jq`; `asf` for transcripts; `yazi` for `ctrl-f`
-(`bat` optional, nicer preview). macOS + Linux.
+Needs `zsh`, `fzf`, `jq`; `asf` for transcripts; `yazi` for `ctrl-f` and images
+(`bat`, `chafa` optional, nicer previews). macOS + Linux.
 
 ## Keys
 

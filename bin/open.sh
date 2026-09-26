@@ -101,14 +101,12 @@ while IFS=$'\t' read -r kind tok; do
   p="${tok%%:[0-9]*}"
   p="${p/#\~/$HOME}"
   case "$p" in
-    /dev/*) continue ;;
+    /dev/*|/proc/*|/sys/*|/usr/*|/bin/*|/sbin/*|/lib*|/snap/*) continue ;;  # tools named in shell commands
     /*) abs="$p" ;;
     *) abs="$cwd/$p" ;;
   esac
-  abs="${abs%/}"  # dedupe dir/ and dir
-  if [ -d "$abs" ]; then
-    printf 'file\t%s/\t%s\n' "${tok%/}" "$abs"
-  elif [ -e "$abs" ]; then
+  # files only: dirs are mostly cd/ls noise, and ctrl-f on a file shows its dir
+  if [ -f "$abs" ]; then
     printf 'file\t%s\t%s\n' "$tok" "$abs"
   fi
 done <<< "$candidates" | awk -F'\t' '!seen[$3]++ { print $1 "\t" $2 }' > "$list"

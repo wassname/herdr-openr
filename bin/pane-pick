@@ -45,11 +45,11 @@ trap 'rm -f "$list"' EXIT
 preview_args=()
 if [[ $preview == 1 ]]; then
   plugin_root="${HERDR_PLUGIN_ROOT:-${0:A:h:h}}"
-  preview_args=(--preview "${(q)plugin_root}/bin/preview {1} {2} ${(q)cwd}" --preview-window 'right:55%:wrap')
+  preview_args=(--preview "${(q)plugin_root}/bin/preview {1} {2} ${(q)cwd}" --preview-window 'right:50%:wrap,<120(down:50%:wrap)')
 fi
 
 out="$(fzf < "$list" \
-  --delimiter=$'\t' --with-nth=2 \
+  --delimiter=$'\t' --with-nth=2 --keep-right \
   --prompt='open ▸ ' \
   --header='enter open · ctrl-f reveal · ctrl-y copy · esc cancel' \
   --expect=ctrl-f,ctrl-y \
@@ -82,6 +82,8 @@ case $key in
     # file: reveal_cmd below; URL: same as enter
     [[ $kind == file ]] && file_cmd="$reveal_cmd" ;;
 esac
+# an editor can't show images; the file manager can
+[[ $kind == file && ${target:e:l} == (png|jpg|jpeg|gif|webp|bmp) ]] && file_cmd="$reveal_cmd"
 
 # {file}/{url} substitutions are shell-quoted ((q)) — candidates come from
 # untrusted pane/transcript text, they must never reach zsh -c unescaped.

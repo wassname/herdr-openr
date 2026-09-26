@@ -25,6 +25,9 @@ print -r -- "${dim}${(l:$w::─:)}${reset}"
 
 if [[ -d $target ]]; then
   ls -la "$target"
+elif [[ ${target:e:l} == (png|jpg|jpeg|gif|webp|bmp) ]] && command -v chafa >/dev/null; then
+  # text symbols, not a graphics protocol: survives herdr panes and --remote
+  chafa --format symbols --polite on --animate off --size "${FZF_PREVIEW_COLUMNS:-80}x$(( ${FZF_PREVIEW_LINES:-24} - 4 ))" "$target"
 elif command -v bat >/dev/null; then
   args=()
   [[ -n $lineno ]] && args+=(--highlight-line "$lineno" --line-range "$((lineno > 5 ? lineno - 5 : 1)):")
