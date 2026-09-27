@@ -73,6 +73,8 @@ url_cmd=""                       # empty = open / xdg-open
 preview="1"
 scan_source="visible"            # non-agent panes; recent* scrolls the pane
 scan_lines=400
+width="95%"                      # popup size: percent or cells
+height="90%"
 transcript_messages=200          # agent panes: last N assistant messages
 
 # VS Code:  file_open_in="detached"; file_cmd='code --goto {file}:{line}'
@@ -82,8 +84,6 @@ transcript_messages=200          # agent panes: last N assistant messages
 #   (needs the `idea` shell launcher; macOS without it:
 #    file_cmd='open -na "IntelliJ IDEA" --args --line {line} {file}')
 ```
-
-Popup size: `OPENR_WIDTH` / `OPENR_HEIGHT` (default `75%` / `60%`).
 
 ## Troubleshooting
 

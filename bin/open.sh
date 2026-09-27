@@ -31,6 +31,8 @@ fi
 # scroll the origin pane while the server reads it
 scan_source="visible"
 scan_lines=400
+width="95%"
+height="90%"
 transcript_messages=200
 conf="$HOME/.config/herdr/plugins/config/openr/openr.conf"
 # shellcheck disable=SC1090
@@ -121,8 +123,8 @@ if ! "$herdr_bin" plugin pane open \
   --plugin openr \
   --entrypoint picker \
   --placement popup \
-  --width "${OPENR_WIDTH:-75%}" \
-  --height "${OPENR_HEIGHT:-60%}" \
+  --width "$width" \
+  --height "$height" \
   --env "OPENR_LIST=$list" \
   --env "OPENR_PANE=$pane_id" \
   --env "OPENR_CWD=$cwd" \
