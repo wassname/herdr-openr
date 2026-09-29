@@ -46,6 +46,8 @@ export PATH="$HOME/.cargo/bin:$PATH"  # cargo install's default; the server PATH
 transcript=""
 if [ "$mode" != "visible" ]; then
   transcript="$("$herdr_bin" pane get "$pane_id" 2>/dev/null | jq -r '.result.pane.agent_session.value // empty')"
+  # asf treats a missing path as a search query and scans every transcript
+  [ -n "$transcript" ] && [ ! -f "$transcript" ] && fail "session transcript missing: $transcript"
   if [ -n "$transcript" ] && ! asf --help >/dev/null 2>&1; then
     [ "$mode" = "transcript" ] && fail "asf not runnable: cargo install --git https://github.com/wassname/asf"
     transcript=""
@@ -61,19 +63,18 @@ printf '%s src=%s pane=%s cwd=%s\n' "$(date '+%H:%M:%S')" \
   "${transcript:-pane-$scan_source}" "$pane_id" "$cwd" \
   > "$HOME/.config/herdr/plugins/config/openr/last-source.log" 2>/dev/null
 
-scan_text() {
-  if [ -n "$transcript" ]; then
-    # assistant text + one line per tool call; tool results are left out (noise)
-    asf -r "$transcript" --role assistant --tools --tail "$transcript_messages" 2>/dev/null
-  else
-    "$herdr_bin" pane read "$pane_id" --source "$scan_source" --lines "$scan_lines" 2>/dev/null
-  fi
-}
+if [ -n "$transcript" ]; then
+  # last N messages, plus one line per tool call and result
+  scan_text="$(asf --read "$transcript" --tools --tail "$transcript_messages" 2>&1)" \
+    || fail "asf --read failed: ${scan_text:0:200}"
+else
+  scan_text="$("$herdr_bin" pane read "$pane_id" --source "$scan_source" --lines "$scan_lines" 2>/dev/null)"
+fi
 
 # URLs, then path-looking tokens (with a slash, or ending .ext[:line]).
 # Dedupe, newest mention first.
 candidates="$(
-  scan_text | awk '
+  printf '%s\n' "$scan_text" | awk '
     {
       # $ and backtick excluded: extracted text feeds command templates,
       # keep shell-expansion characters out of candidates entirely
