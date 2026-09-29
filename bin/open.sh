@@ -64,8 +64,8 @@ printf '%s src=%s pane=%s cwd=%s\n' "$(date '+%H:%M:%S')" \
   > "$HOME/.config/herdr/plugins/config/openr/last-source.log" 2>/dev/null
 
 if [ -n "$transcript" ]; then
-  # last N messages, plus one line per tool call and result
-  scan_text="$(asf --read "$transcript" --tools --tail "$transcript_messages" 2>&1)" \
+  # assistant text + one line per tool call; tool results are left out (noise)
+  scan_text="$(asf --read "$transcript" --role assistant --tools --tail "$transcript_messages" 2>&1)" \
     || fail "asf --read failed: ${scan_text:0:200}"
 else
   scan_text="$("$herdr_bin" pane read "$pane_id" --source "$scan_source" --lines "$scan_lines" 2>/dev/null)"
